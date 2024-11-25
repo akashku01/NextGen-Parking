@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Parking Dashboard with Navigation</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.1/dist/leaflet.css" />
+    
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnbli2Gxn8ANAfwox-Z2Ox3NH1kzPcTxc",
+            authDomain: "techrizz-41662.firebaseapp.com",
+            databaseURL: "https://techrizz-41662-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "techrizz-41662",
+            storageBucket: "techrizz-41662.firebasestorage.app",
+            messagingSenderId: "239396493246",
+            appId: "1:239396493246:web:83533c4be0ba392cc44bef"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Reference the 'Sensor' node in Firebase
+        const sensorRef = ref(database, 'Sensor');
+
+        // Function to fetch and update parking slots
+        function fetchData() {
+            onValue(sensorRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    console.log('Firebase Data:', data);  // Log the entire data object
+                    updateParkingSlots(data);
+                } else {
+                    console.log('No data found');
+                }
+            });
+        }
+
+        // Function to update parking slots on the UI
+        function updateParkingSlots(data) {
+            const totalSlots = 6;
+            const parkingLotElement = document.getElementById('parking-lot');
+            const occupiedSlotsElement = document.getElementById('occupied-slots');
+            const freeSlotsElement = document.getElementById('free-slots');
+            let occupiedSlots = 0;
+
+            // Clear existing slots
+            parkingLotElement.innerHTML = '';
+
+            for (let i = 1; i <= totalSlots; i++) {
+                const spotElement = document.createElement('div');
+                spotElement.className = 'parking-spot';
+
+                // Ensure slot value is treated as a number
+                const slotValue = parseInt(data[value$ (i)] , 10) || 0;  // Default to 0 if invalid
+
+                // If the slot value is between 2 and 6, it is considered occupied
+                if (slotValue >= 2 && slotValue <= 6) {
+                    spotElement.classList.add('occupied');
+                    occupiedSlots++;
+                } else {
+                    spotElement.classList.add('free');
+                }
+
+                // Do not show the slot value on the UI (just add class based on occupation)
+                parkingLotElement.appendChild(spotElement);
+            }
+
+            // Update stats (occupied and free slots)
+            updateStats(totalSlots, occupiedSlots);
+        }
+
+        // Function to update stats (occupied/free slots)
+        function updateStats(totalSlots, occupiedSlots) {
+            const freeSlots = totalSlots - occupiedSlots;
+            document.getElementById('occupied-slots').textContent = occupiedSlots;
+            document.getElementById('free-slots').textContent = freeSlots;
+        }
+
+        // Initial data fetch and updates every second
+        setInterval(fetchData, 1000);
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000000;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #f10404b7, #e2fb03);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px auto;
+            width: 90%;
+            max-width: 1200px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            width: 250px;
+            height: 100px;
+            border-radius: 50%;
+        }
+
+        .navbar ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+
+        .navbar ul li {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .navbar ul li span {
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+
+        .dashboard {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .parking-lot {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            justify-items: center;
+            position: relative;
+        }
+
+        .parking-spot {
+            width: 140px;
+            height: 180px;
+            background: linear-gradient(145deg, #32a852, #28a745);
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .parking-spot.occupied {
+            background: linear-gradient(145deg, #dc3545, #c82333);
+        }
+
+        .parking-spot.free {
+            background: linear-gradient(145deg, #32a852, #28a745);
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="logo-section">
+            <img src="Logo.PNG" alt="Logo" class="logo">
+        </div>
+        <ul>
+            <li>Total Slots: <span id="total-slots">6</span></li>
+            <li>Occupied Slots: <span id="occupied-slots">0</span></li>
+            <li>Free Slots: <span id="free-slots">6</span></li>
+        </ul>
+    </nav>
+
+    <!-- Dashboard -->
+    <div class="dashboard">
+        <div class="parking-lot" id="parking-lot"></div>
+    </div>
+
+    <!-- Leaflet Map -->
+    <div id="map"></div>
+
+    <!-- Leaflet and Firebase JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+        // Initialize the Leaflet map
+        const map = L.map('map').setView([20.29431915283203, 85.742431640625], 14); // Latitude and Longitude for the map center
+
+        // Set the tile layer to OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add a destination marker (for example, parking lot location)
+        const destinationLat = 20.29431915283203;
+        const destinationLon = 85.742431640625;
+
+        const destinationMarker = L.marker([destinationLat, destinationLon]).addTo(map);
+        destinationMarker.bindPopup('<b>Parking Lot</b><br>This is the destination.');
+
+        // Function to get user's current location and display the map centered on it
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    // Center the map on the user's location
+                    map.setView([userLat, userLon], 14);
+
+                    // Add a marker for the user's current location
+                    const userMarker = L.marker([userLat, userLon]).addTo(map);
+                    userMarker.bindPopup('<b>Your Location</b><br>You are here.');
+
+                    // Create and display a route from user's current location to the destination
+                    const route = L.Routing.control({
+                        waypoints: [
+                            L.latLng(userLat, userLon),  // User's current location
+                            L.latLng(destinationLat, destinationLon)  // Parking lot (destination)
+                        ],
+                        routeWhileDragging: true
+                    }).addTo(map);
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+
+        // Get current location when the page loads
+        window.onload = function() {
+            getCurrentLocation();
+            fetchData();  // Fetch parking data on load
+        };
+    </script>
+
+</body>
+</html>
